@@ -11,10 +11,16 @@ public class Main
     public static void main(String[] args)
     {
         final Server server = new HttpServer();
-        server.start(1234);
-        log.info("Server started.");
         
-        server.stop();
-        log.info("Server stopped.");
+        Runtime.getRuntime().addShutdownHook(new Thread(){
+            @Override public void run()
+            {
+                server.stop();
+                log.info("Server stopped.");
+            }
+        });
+        
+        log.info("Server starting.");
+        server.start(1234);
     }
 }
