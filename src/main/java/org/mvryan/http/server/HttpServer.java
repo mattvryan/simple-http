@@ -5,6 +5,8 @@ import java.net.ServerSocket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.mvryan.http.request.RequestHandler;
+
 public class HttpServer implements Server
 {
     private final ExecutorService pool = Executors.newCachedThreadPool();
