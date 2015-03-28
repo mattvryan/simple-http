@@ -20,4 +20,24 @@ public class HttpResponseCode
     
     int status;
     String reason;
+    
+    public boolean isRedirect()
+    {
+        return status >= 300 && status < 400;
+    }
+    
+    public boolean isClientError()
+    {
+        return status >= 400 && status < 500;
+    }
+    
+    public boolean isServerError()
+    {
+        return status >= 500;
+    }
+    
+    public boolean isError()
+    {
+        return isClientError() || isServerError();
+    }
 }

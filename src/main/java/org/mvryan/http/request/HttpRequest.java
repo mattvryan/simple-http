@@ -55,6 +55,13 @@ public class HttpRequest
         return parseHeaders(reader);
     }
     
+    public boolean isKeepalive()
+    {
+        return false; // Not currently supported
+        //final String connection = headers.get("Connection");
+        //return null != connection && connection.equals("keep-alive");
+    }
+    
     private String readWord(final BufferedReader reader) throws IOException
     {
         char nextChar;
