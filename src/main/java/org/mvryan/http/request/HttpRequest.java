@@ -10,7 +10,6 @@ import lombok.Getter;
 
 import org.mvryan.http.response.HttpResponseCode;
 
-import com.google.common.base.Strings;
 import com.google.common.collect.Maps;
 
 public class HttpRequest
@@ -64,10 +63,14 @@ public class HttpRequest
     
     private String readWord(final BufferedReader reader) throws IOException
     {
-        char nextChar;
-        while (Character.isWhitespace(nextChar = (char) reader.read()));
+        char nextChar = (char) reader.read();
         if (-1 == nextChar)
         {
+            return null;
+        }
+        else if ('\r' == nextChar)
+        {
+            reader.read(); // consume CRLF sequence
             return null;
         }
         
@@ -81,6 +84,12 @@ public class HttpRequest
             }
             sb.append(nextChar);
         }
+        
+        if ('\r' == nextChar)
+        {
+            reader.read(); // consume CRLF sequence
+        }
+        
         return sb.length() > 0 ? sb.toString() : null;
     }
     
@@ -91,30 +100,16 @@ public class HttpRequest
     
     private HttpResponseCode parseHeaders(final BufferedReader reader) throws IOException
     {
-        String line;
-        String[] parts;
-        boolean emptyLineEndsParsing = false;
-        
-        while (null != (line = reader.readLine().trim()))
+        String header;
+        String value;
+        while (null != (header = readWord(reader)))
         {
-            if (line.length() < 1)
-            {
-                if (emptyLineEndsParsing)
-                {
-                    break;
-                }
-                else
-                {
-                    emptyLineEndsParsing = true;
-                    continue;
-                }
-            }
-            parts = line.split(":", 2);
-            if (parts.length < 2)
+            value = reader.readLine();
+            if (null == value)
             {
                 return HttpResponseCode.BAD_REQUEST;
             }
-            headers.put(parts[0].trim(), parts[1].trim());
+            headers.put(header.substring(0, header.length()-1), value.trim());
         }
         
         return HttpResponseCode.OK;
