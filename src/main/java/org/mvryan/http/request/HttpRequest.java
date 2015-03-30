@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Map;
 
 import lombok.Getter;
@@ -17,7 +19,7 @@ public class HttpRequest
     @Getter
     private String method = null;
     @Getter
-    private String uri = null;
+    private URI uri = null;
     @Getter
     private Map<String, String> headers = Maps.newHashMap();
     
@@ -35,8 +37,8 @@ public class HttpRequest
             return HttpResponseCode.NOT_IMPLEMENTED;
         }
         
-        uri = readWord(reader);
-        if (null == method)
+        final String uri = readWord(reader);
+        if (null == uri)
         {
             return HttpResponseCode.BAD_REQUEST;
         }
@@ -51,7 +53,21 @@ public class HttpRequest
             return HttpResponseCode.HTTP_VERSION_NOT_SUPPORTED;
         }
         
-        return parseHeaders(reader);
+        HttpResponseCode responseCode = parseHeaders(reader);
+        if (HttpResponseCode.OK != responseCode)
+        {
+            return responseCode;
+        }
+        
+        final String hostHeader = headers.get("Host");
+        if (null == hostHeader)
+        {
+            return HttpResponseCode.BAD_REQUEST;
+        }
+        
+        normalizePath(uri, hostHeader);
+        
+        return responseCode;
     }
     
     public boolean isKeepalive()
@@ -110,6 +126,30 @@ public class HttpRequest
                 return HttpResponseCode.BAD_REQUEST;
             }
             headers.put(header.substring(0, header.length()-1), value.trim());
+        }
+        
+        return HttpResponseCode.OK;
+    }
+    
+    private HttpResponseCode normalizePath(final String requestUri, final String host)
+    {
+        String fullUri;
+        if (requestUri.startsWith("/"))
+        {
+            fullUri = "http://" + host + requestUri;
+        }
+        else
+        {
+            fullUri = requestUri;
+        }
+        
+        try
+        {
+            uri = new URI(fullUri);
+        }
+        catch (URISyntaxException e)
+        {
+            return HttpResponseCode.BAD_REQUEST;
         }
         
         return HttpResponseCode.OK;
