@@ -10,6 +10,10 @@ public class HttpResponseCode
     
     public static final HttpResponseCode BAD_REQUEST =
             new HttpResponseCode(400, "Bad Request");
+    public static final HttpResponseCode FORBIDDEN =
+            new HttpResponseCode(403, "Forbidden");
+    public static final HttpResponseCode FILE_NOT_FOUND =
+            new HttpResponseCode(404, "File Not Found");
     
     public static final HttpResponseCode INTERNAL_SERVER_ERROR =
             new HttpResponseCode(500, "Internal Server Error");

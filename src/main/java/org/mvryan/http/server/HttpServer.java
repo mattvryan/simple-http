@@ -5,7 +5,11 @@ import java.net.ServerSocket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import org.mvryan.http.modules.HttpServerModule;
 import org.mvryan.http.request.RequestHandler;
+
+import com.google.inject.Guice;
+import com.google.inject.Injector;
 
 public class HttpServer implements Server
 {
@@ -18,10 +22,11 @@ public class HttpServer implements Server
     {
         try
         {
+            Injector injector = Guice.createInjector(new HttpServerModule());
             serverSocket = new ServerSocket(port);
             while (keep_running)
             {
-                pool.execute(new RequestHandler(serverSocket.accept()));
+                pool.execute(new RequestHandler(serverSocket.accept(), injector));
             }
             stop();
         }

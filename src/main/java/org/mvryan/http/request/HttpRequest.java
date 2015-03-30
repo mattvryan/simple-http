@@ -8,6 +8,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Map;
 
+import javax.inject.Inject;
+
 import lombok.Getter;
 
 import org.mvryan.http.response.HttpResponseCode;
@@ -22,6 +24,9 @@ public class HttpRequest
     private URI uri = null;
     @Getter
     private Map<String, String> headers = Maps.newHashMap();
+    
+    @Inject
+    public HttpRequest() { }
     
     public HttpResponseCode parse(final InputStream is) throws IOException
     {
