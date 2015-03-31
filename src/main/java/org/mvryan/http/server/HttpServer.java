@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.mvryan.http.modules.HttpServerModule;
 import org.mvryan.http.request.RequestHandler;
@@ -47,10 +48,18 @@ public class HttpServer implements Server
             {
                 serverSocket.close();
             }
-            catch (IOException e)
-            {
-                
-            }
+            catch (IOException e) { }
+        }
+        
+        pool.shutdown();
+        try
+        {
+            pool.awaitTermination(500, TimeUnit.MILLISECONDS);
+        }
+        catch (InterruptedException e) { }
+        if (! pool.isTerminated())
+        {
+            pool.shutdownNow();
         }
     }
 }
