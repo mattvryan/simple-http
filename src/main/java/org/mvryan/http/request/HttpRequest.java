@@ -4,8 +4,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.net.URI;
-import java.net.URISyntaxException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Map;
 
 import javax.inject.Inject;
@@ -21,9 +21,12 @@ public class HttpRequest
     @Getter
     private String method = null;
     @Getter
-    private URI uri = null;
+    private URL uri = null;
     @Getter
     private Map<String, String> headers = Maps.newHashMap();
+    
+    public static final String HTTP_VERSION_1_1 = "HTTP/1.1";
+    public static final int MAX_URI_LENGTH=2048; // Semi-arbitrary limit with some de-facto basis.  Ask the internet for more info... :)
     
     @Inject
     public HttpRequest() { }
@@ -47,13 +50,17 @@ public class HttpRequest
         {
             return HttpResponseCode.BAD_REQUEST;
         }
+        else if (uri.length() > MAX_URI_LENGTH)
+        {
+            return HttpResponseCode.REQUEST_URI_TOO_LONG;
+        }
         
         final String version = readWord(reader);
         if (null == version)
         {
             return HttpResponseCode.BAD_REQUEST;
         }
-        else if (! version.equals("HTTP/1.1"))
+        else if (! HTTP_VERSION_1_1.equals(version))
         {
             return HttpResponseCode.HTTP_VERSION_NOT_SUPPORTED;
         }
@@ -70,7 +77,7 @@ public class HttpRequest
             return HttpResponseCode.BAD_REQUEST;
         }
         
-        normalizePath(uri, hostHeader);
+        responseCode = normalizePath(uri, hostHeader);
         
         return responseCode;
     }
@@ -148,11 +155,16 @@ public class HttpRequest
             fullUri = requestUri;
         }
         
+        if (fullUri.length() > MAX_URI_LENGTH)
+        {
+            return HttpResponseCode.REQUEST_URI_TOO_LONG;
+        }
+        
         try
         {
-            uri = new URI(fullUri);
+            uri = new URL(fullUri);
         }
-        catch (URISyntaxException e)
+        catch (MalformedURLException e)
         {
             return HttpResponseCode.BAD_REQUEST;
         }
