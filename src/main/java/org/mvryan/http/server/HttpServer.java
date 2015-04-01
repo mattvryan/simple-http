@@ -6,12 +6,15 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import lombok.extern.slf4j.Slf4j;
+
 import org.mvryan.http.modules.HttpServerModule;
 import org.mvryan.http.request.RequestHandler;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 
+@Slf4j
 public class HttpServer implements Server
 {
     private final ExecutorService pool = Executors.newCachedThreadPool();
@@ -33,9 +36,8 @@ public class HttpServer implements Server
         }
         catch (IOException e)
         {
-            // TODO
+            log.error(String.format("Unable to start server on port %d", port), e);
         }
-
     }
 
     @Override
@@ -48,7 +50,10 @@ public class HttpServer implements Server
             {
                 serverSocket.close();
             }
-            catch (IOException e) { }
+            catch (IOException e)
+            {
+                log.warn("Error trying to close server socket", e);
+            }
         }
         
         pool.shutdown();
@@ -56,7 +61,10 @@ public class HttpServer implements Server
         {
             pool.awaitTermination(500, TimeUnit.MILLISECONDS);
         }
-        catch (InterruptedException e) { }
+        catch (InterruptedException e)
+        {
+            log.info("Error during threadpool shutdown", e);
+        }
         if (! pool.isTerminated())
         {
             pool.shutdownNow();
