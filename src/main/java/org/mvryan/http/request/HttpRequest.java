@@ -29,6 +29,7 @@ public class HttpRequest
     
     public static final String HTTP_VERSION_1_1 = "HTTP/1.1";
     public static final int MAX_URI_LENGTH=2048; // Semi-arbitrary limit with some de-facto basis.  Ask the internet for more info... :)
+    private static final int MAX_WORD_LENGTH=MAX_URI_LENGTH*2;
     
     @Inject
     public HttpRequest() { }
@@ -115,6 +116,11 @@ public class HttpRequest
                 break;
             }
             sb.append(nextChar);
+            if (sb.length() > MAX_WORD_LENGTH)
+            {
+                // Something weird happening here
+                return null;
+            }
         }
         
         if ('\r' == nextChar)
