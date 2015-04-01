@@ -115,7 +115,9 @@ public class HttpRequest
             {
                 break;
             }
+            
             sb.append(nextChar);
+            
             if (sb.length() > MAX_WORD_LENGTH)
             {
                 // Something weird happening here
