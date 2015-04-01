@@ -3,11 +3,17 @@ package org.mvryan.http.response.filesys;
 import java.io.File;
 import java.io.IOException;
 
+import javax.inject.Inject;
+import javax.inject.Named;
+
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
+import org.mvryan.http.modules.ConfigurationModule;
 import org.mvryan.http.request.HttpRequest;
 import org.mvryan.http.response.HttpResponseCode;
+
+import com.google.common.base.Joiner;
 
 @Slf4j
 public class DefaultFilesystemResponseStrategy implements FilesystemResponseStrategy
@@ -19,8 +25,14 @@ public class DefaultFilesystemResponseStrategy implements FilesystemResponseStra
     @Getter
     private String contentType = CONTENT_TYPE_DEFAULT; // HTTP default
     
-    
     private final FilesystemResolver fileResolver;
+    
+    @Inject
+    @Named(ConfigurationModule.DOCUMENT_ROOT)
+    private String documentRoot;
+    @Inject
+    @Named(ConfigurationModule.ALLOW_DIRECTORY_INDEX)
+    private String allowDirectoryIndex;
     
     public DefaultFilesystemResponseStrategy()
     {
@@ -125,9 +137,57 @@ public class DefaultFilesystemResponseStrategy implements FilesystemResponseStra
     
     private void processDirectoryIndex(final File directory)
     {
-        log.debug("Attempted unsupported directory index");
-        responsePayload = "Directory index not supported".getBytes();
-        responseCode = HttpResponseCode.FORBIDDEN;
+        boolean allowIdx = false;
+        
+        if (null != allowDirectoryIndex)
+        {
+            allowIdx = Boolean.parseBoolean(allowDirectoryIndex);
+        }
+        
+        if (! allowIdx)
+        {
+            log.debug("Attempted unsupported directory index");
+            responsePayload = "Directory index not supported".getBytes();
+            responseCode = HttpResponseCode.FORBIDDEN;
+        }
+        else
+        {
+            final StringBuilder sb = new StringBuilder();
+            final String dirPath = getRelativePath(directory.getAbsolutePath());
+            sb.append(String.format("<html><head><title>Index of %s</title></head>\n", dirPath));
+            sb.append(String.format("<body>%s<hr/>\n<a href=\"%s\">.</a><br/>\n", dirPath, dirPath));
+            if (! dirPath.equals("/"))
+            {
+                String parentDirPath = dirPath.substring(0, dirPath.lastIndexOf(File.separator, dirPath.length()-2));
+                if (0 == parentDirPath.length())
+                {
+                    parentDirPath = "/";
+                }
+                sb.append(String.format("<a href=\"%s\">..</a><br/>\n", parentDirPath));
+            }
+            for (final File file : directory.listFiles())
+            {
+                sb.append(String.format("<a href=\"%s\">%s</a><br/>\n", getRelativePath(file.getAbsolutePath()), file.getName()));
+            }
+            sb.append("</body></html>\n");
+            responsePayload = sb.toString().getBytes();
+            contentType = CONTENT_TYPE_TEXT_HTML;
+            responseCode = HttpResponseCode.OK;
+        }
+    }
+    
+    private String getRelativePath(final String absolutePath)
+    {
+        String relativePath = absolutePath;
+        if (absolutePath.startsWith(documentRoot))
+        {
+            relativePath = absolutePath.substring(documentRoot.endsWith(File.separator) ? documentRoot.length()-1 : documentRoot.length());
+        }
+        if (relativePath.endsWith("/"))
+        {
+            relativePath = relativePath.substring(0, relativePath.length()-1);
+        }
+        return relativePath;
     }
     
     private boolean contentTypeMatchesAccept(final String contentType, final HttpRequest request)

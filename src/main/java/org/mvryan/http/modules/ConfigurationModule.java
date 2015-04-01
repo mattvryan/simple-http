@@ -19,6 +19,7 @@ import com.google.inject.name.Names;
 public class ConfigurationModule extends AbstractModule
 {
     public static final String DOCUMENT_ROOT = "org.mvryan.simple-http.documentroot";
+    public static final String ALLOW_DIRECTORY_INDEX = "org.mvryan.simple-http.allowdirectoryindex";
     
     @Override
     protected void configure()
@@ -32,6 +33,7 @@ public class ConfigurationModule extends AbstractModule
         
         // Load default configuration
         config.put(DOCUMENT_ROOT, docRoot);
+        config.put(ALLOW_DIRECTORY_INDEX, Boolean.FALSE.toString());
         
         // Load any configuration from resources
         try
