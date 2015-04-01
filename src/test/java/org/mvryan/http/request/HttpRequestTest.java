@@ -103,7 +103,9 @@ public class HttpRequestTest
     public void testKeepAlive() throws IOException
     {
         sut.parse(STD_GET.getInputStream());
-        assertFalse(sut.isKeepalive()); // not currently supported
+        assertTrue(sut.isKeepalive());
+        sut.parse(NO_KEEPALIVE_GET.getInputStream());
+        assertFalse(sut.isKeepalive());
     }
     
     @Test
@@ -220,7 +222,18 @@ public class HttpRequestTest
         m.put("Accept", "*/*");
         noHostHeaders = Collections.unmodifiableMap(m);
     }
-    
+
+    private static final Map<String, String> noKeepaliveHeaders;
+    static {
+        Map<String, String> m = Maps.newHashMap();
+        m.put("Host", "localhost");
+        m.put("Connection", "close");
+        m.put("Cache-Control", "no-cache");
+        m.put("User-Agent", "JUnit");
+        m.put("Accept", "*/*");
+        noKeepaliveHeaders = Collections.unmodifiableMap(m);
+    }
+
     private static String getLongString(final String base, int minLength)
     {
         final StringBuilder sb = new StringBuilder();
@@ -240,4 +253,5 @@ public class HttpRequestTest
     private static final Msg VERSION_2_0_GET = new GetMsg("/get/test/test.html", "2.0", stdHeaders);
     private static final Msg LONG_URI_GET = new GetMsg(getLongString("/abcdef/ghijkl/mnopqr/stu/vwx/yz", 2500), stdHeaders);
     private static final Msg MISSING_HOST_GET = new GetMsg("/get/test/test.html", noHostHeaders);
+    private static final Msg NO_KEEPALIVE_GET = new GetMsg("/get/test/test.html", noKeepaliveHeaders);
 }

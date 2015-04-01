@@ -3,9 +3,14 @@ package org.mvryan.http.request;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Optional;
+import java.util.Timer;
+import java.util.TimerTask;
 
-import lombok.Value;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 import org.joda.time.DateTime;
@@ -17,48 +22,68 @@ import org.mvryan.http.response.HttpResponseFactory;
 import com.google.inject.Injector;
 
 @Slf4j
-@Value
+@RequiredArgsConstructor
+@FieldDefaults(level=AccessLevel.PRIVATE)
 public class RequestHandler implements Runnable
 {
-    Socket socket;
-    Injector injector;
-
+    final Socket socket;
+    final Injector injector;
+    
+    Timer keepaliveTimer = null;
+    Timer maxKeepaliveTimer = null;
+    
+    private static final int KEEPALIVE_TIMEOUT_SECONDS = 15;
+    private static final int MAX_KEEPALIVE_TIMEOUT_SECONDS = 100;
+    
     @Override
     public void run()
     {
         final HttpRequest request = injector.getInstance(HttpRequest.class);
         try
         {
-            HttpResponseCode responseCode = request.parse(socket.getInputStream());
-            
-            log.info(String.format("Request: %s %s", request.getMethod(), request.getUri().getPath()));            
-            
-            if (responseCode.isError() || responseCode.isRedirect())
+            while(true)
             {
-                respondAndClose(request, responseCode);
-            }
-            else
-            {
-                final HttpResponseFactory factory = injector.getInstance(HttpResponseFactory.class);
-                final HttpResponse response = factory.getResponse(request);
-                responseCode = response.getResponseCode();
+                HttpResponseCode responseCode = request.parse(socket.getInputStream());
                 
-                if (responseCode.isError())
+                log.info(String.format("Request: %s %s", request.getMethod(), request.getUri().getPath()));            
+                
+                if (responseCode.isError() || responseCode.isRedirect())
                 {
-                    respondAndClose(request, responseCode, Optional.of(response));
+                    respondAndClose(request, responseCode);
+                    break;
                 }
                 else
                 {
-                    if (request.isKeepalive())
+                    final HttpResponseFactory factory = injector.getInstance(HttpResponseFactory.class);
+                    final HttpResponse response = factory.getResponse(request);
+                    responseCode = response.getResponseCode();
+                    
+                    if (responseCode.isError())
                     {
-                        respond(request, responseCode, Optional.of(response));
+                        respondAndClose(request, responseCode, Optional.of(response));
+                        break;
                     }
                     else
                     {
-                        respondAndClose(request, responseCode, Optional.of(response));
+                        if (request.isKeepalive())
+                        {
+                            manageKeepalives();
+                            respond(request, responseCode, Optional.of(response));
+                        }
+                        else
+                        {
+                            respondAndClose(request, responseCode, Optional.of(response));
+                            break;
+                        }
                     }
                 }
             }
+        }
+        catch (SocketException se)
+        {
+            // This happens when we close the socket while trying to read,
+            // which happens if a keepalive timer expires.  Nothing to
+            // worry about here.
         }
         catch (Exception e)
         {
@@ -80,20 +105,31 @@ public class RequestHandler implements Runnable
             final Optional<HttpResponse> response)
             throws IOException
     {
-        final PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
-        writer.println(String.format("HTTP/1.1 %d %s", responseCode.getStatus(), responseCode.getReason()));
-        writer.println(String.format("Date: %s", DateTime.now().toString(ISODateTimeFormat.dateTime())));
-        writer.println("Server: Simple HTTP server version 0.0.1 (org.mvryan.http)");
-        writer.println("Connection: close");
-        if (response.isPresent())
+        synchronized(this)
         {
-            HttpResponse rsp = response.get();
-            if (null != rsp.getResponsePayload())
+            final PrintWriter writer = new PrintWriter(socket.getOutputStream(), true);
+            writer.println(String.format("HTTP/1.1 %d %s", responseCode.getStatus(), responseCode.getReason()));
+            writer.println(String.format("Date: %s", DateTime.now().toString(ISODateTimeFormat.dateTime())));
+            writer.println("Server: Simple HTTP server version 0.0.1 (org.mvryan.http)");
+            if (request.isKeepalive())
             {
-                writer.println(String.format("Content-Length: %d", rsp.getResponsePayload().length));
-                writer.println(String.format("Content-Type: %s", rsp.getContentType()));
-                writer.println("");
-                socket.getOutputStream().write(rsp.getResponsePayload());
+                writer.println("Connection: keep-alive");
+                writer.println(String.format("Keep-Alive: timeout=%d, max=%d", KEEPALIVE_TIMEOUT_SECONDS, MAX_KEEPALIVE_TIMEOUT_SECONDS));
+            }
+            else
+            {
+                writer.println("Connection: close");
+            }
+            if (response.isPresent())
+            {
+                HttpResponse rsp = response.get();
+                if (null != rsp.getResponsePayload())
+                {
+                    writer.println(String.format("Content-Length: %d", rsp.getResponsePayload().length));
+                    writer.println(String.format("Content-Type: %s", rsp.getContentType()));
+                    writer.println("");
+                    socket.getOutputStream().write(rsp.getResponsePayload());
+                }
             }
         }
         
@@ -125,6 +161,65 @@ public class RequestHandler implements Runnable
         throws IOException
     {
         respond(request, responseCode, response);
+        closeSocket();
+    }
+    
+    private void manageKeepalives()
+    {
+        if (null != keepaliveTimer)
+        {
+            keepaliveTimer.cancel();
+            keepaliveTimer = null;
+        }
+        
+        keepaliveTimer = new Timer();
+        keepaliveTimer.schedule(new TimerTask()
+        {
+            @Override public void run()
+            {
+                try
+                {
+                    maxKeepaliveTimer.cancel();
+                    maxKeepaliveTimer = null;
+                    closeSocket();
+                    log.debug("Keepalive timeout expired - socket closed");
+                    keepaliveTimer.cancel();
+                    keepaliveTimer = null;
+                }
+                catch (IOException e)
+                {
+                    log.debug("Unable to close socket", e);
+                }
+            }
+        }, KEEPALIVE_TIMEOUT_SECONDS*1000);
+        
+        if (null == maxKeepaliveTimer)
+        {
+            maxKeepaliveTimer = new Timer();
+            maxKeepaliveTimer.schedule(new TimerTask()
+            {
+                @Override public void run()
+                {
+                    try
+                    {
+                        keepaliveTimer.cancel();
+                        keepaliveTimer = null;
+                        closeSocket();
+                        log.debug("Max keepalive timeout expired - socket closed");
+                        maxKeepaliveTimer.cancel();
+                        maxKeepaliveTimer = null;
+                    }
+                    catch (IOException e)
+                    {
+                        log.debug("Unable to close socket", e);
+                    }
+                }
+            }, MAX_KEEPALIVE_TIMEOUT_SECONDS*1000);
+        }        
+    }
+    
+    private synchronized void closeSocket() throws IOException
+    {
         socket.close();
     }
 }

@@ -11,7 +11,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mvryan.http.modules.ConfigurationModule;
 import org.mvryan.http.request.HttpRequest;
+import org.mvryan.http.response.filesys.DefaultFilesystemResponseStrategy;
 import org.mvryan.http.response.filesys.FilesystemHttpResponse;
+import org.mvryan.http.response.filesys.FilesystemResponseStrategy;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
@@ -21,7 +23,11 @@ public class HttpResponseFactoryTest
 {
     private final Injector injector = Guice.createInjector(new AbstractModule()
     {
-        @Override protected void configure() { install(new ConfigurationModule()); }
+        @Override protected void configure()
+        {
+            install(new ConfigurationModule());
+            bind(FilesystemResponseStrategy.class).to(DefaultFilesystemResponseStrategy.class);
+        }
     });
     
     private static final HttpRequest mockRequest = mock(HttpRequest.class);
