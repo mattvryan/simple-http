@@ -26,14 +26,16 @@ public class RequestHandler implements Runnable
     @Override
     public void run()
     {
+        final HttpRequest request = injector.getInstance(HttpRequest.class);
         try
         {
-            final HttpRequest request = injector.getInstance(HttpRequest.class);
             HttpResponseCode responseCode = request.parse(socket.getInputStream());
+            
+            log.info(String.format("Request: %s %s", request.getMethod(), request.getUri().getPath()));            
             
             if (responseCode.isError() || responseCode.isRedirect())
             {
-                respondAndClose(responseCode);
+                respondAndClose(request, responseCode);
             }
             else
             {
@@ -43,17 +45,17 @@ public class RequestHandler implements Runnable
                 
                 if (responseCode.isError())
                 {
-                    respondAndClose(responseCode, Optional.of(response));
+                    respondAndClose(request, responseCode, Optional.of(response));
                 }
                 else
                 {
                     if (request.isKeepalive())
                     {
-                        respond(responseCode, Optional.of(response));
+                        respond(request, responseCode, Optional.of(response));
                     }
                     else
                     {
-                        respondAndClose(responseCode, Optional.of(response));
+                        respondAndClose(request, responseCode, Optional.of(response));
                     }
                 }
             }
@@ -63,7 +65,7 @@ public class RequestHandler implements Runnable
             log.error("Exception caught handling request", e);
             try
             {
-                respondAndClose(HttpResponseCode.INTERNAL_SERVER_ERROR);
+                respondAndClose(request, HttpResponseCode.INTERNAL_SERVER_ERROR);
             }
             catch (IOException ioe)
             {
@@ -73,7 +75,8 @@ public class RequestHandler implements Runnable
         }
     }
     
-    private void respond(final HttpResponseCode responseCode,
+    private void respond(final HttpRequest request,
+            final HttpResponseCode responseCode,
             final Optional<HttpResponse> response)
             throws IOException
     {
@@ -89,23 +92,39 @@ public class RequestHandler implements Runnable
             {
                 writer.println(String.format("Content-Length: %d", rsp.getResponsePayload().length));
                 writer.println(String.format("Content-Type: %s", rsp.getContentType()));
-//                // headers - Content-Type
                 writer.println("");
                 socket.getOutputStream().write(rsp.getResponsePayload());
             }
         }
+        
+        if (responseCode.isError())
+        {
+            log.error(String.format("Response (ERROR): %d %s (Request: %s %s)",
+                    responseCode.getStatus(),
+                    responseCode.getReason(),
+                    request == null ? "?" : request.getMethod(),
+                    request == null ? "?" : request.getUri().getPath()));
+        }
+        else
+        {
+            log.info(String.format("Response: %d %s (Request: %s %s)",
+                    responseCode.getStatus(),
+                    responseCode.getReason(),
+                    request == null ? "?" : request.getMethod(),
+                    request == null ? "?" : request.getUri().getPath()));
+        }
     }
     
-    private void respondAndClose(final HttpResponseCode responseCode) throws IOException
+    private void respondAndClose(final HttpRequest request, final HttpResponseCode responseCode) throws IOException
     {
-        respondAndClose(responseCode, Optional.empty());
+        respondAndClose(request, responseCode, Optional.empty());
     }
     
-    private void respondAndClose(final HttpResponseCode responseCode, 
+    private void respondAndClose(final HttpRequest request, final HttpResponseCode responseCode, 
             final Optional<HttpResponse> response)
         throws IOException
     {
-        respond(responseCode, response);
+        respond(request, responseCode, response);
         socket.close();
     }
 }

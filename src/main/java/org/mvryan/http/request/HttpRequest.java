@@ -11,11 +11,13 @@ import java.util.Map;
 import javax.inject.Inject;
 
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 
 import org.mvryan.http.response.HttpResponseCode;
 
 import com.google.common.collect.Maps;
 
+@Slf4j
 public class HttpRequest
 {
     @Getter
@@ -36,6 +38,7 @@ public class HttpRequest
         final BufferedReader reader = new BufferedReader(new InputStreamReader(is));
         
         method = readWord(reader);
+        log.debug(String.format("Parsed request method \"%s\"", method));
         if (null == method)
         {
             return HttpResponseCode.BAD_REQUEST;
@@ -46,6 +49,7 @@ public class HttpRequest
         }
         
         final String uri = readWord(reader);
+        log.debug(String.format("Parsed request URI \"%s\"", uri));
         if (null == uri)
         {
             return HttpResponseCode.BAD_REQUEST;
@@ -56,6 +60,7 @@ public class HttpRequest
         }
         
         final String version = readWord(reader);
+        log.debug(String.format("Parsed request version \"%s\"", version));
         if (null == version)
         {
             return HttpResponseCode.BAD_REQUEST;
@@ -137,7 +142,10 @@ public class HttpRequest
             {
                 return HttpResponseCode.BAD_REQUEST;
             }
-            headers.put(header.substring(0, header.length()-1), value.trim());
+            final String h = header.substring(0, header.length()-1);
+            final String v = value.trim();
+            log.debug(String.format("Parsed header \"%s: %s\"", h, v));
+            headers.put(h, v);
         }
         
         return HttpResponseCode.OK;
@@ -162,6 +170,7 @@ public class HttpRequest
         
         try
         {
+            log.debug(String.format("Normalized request URI \"%s\", host header \"%s\" to URI \"%s\"", requestUri, host, fullUri));
             uri = new URL(fullUri);
         }
         catch (MalformedURLException e)

@@ -35,6 +35,8 @@ public class DefaultFilesystemResponseStrategy implements FilesystemResponseStra
     @Override
     public void determineResponse(String documentRootPath, HttpRequest request)
     {
+        log.debug(String.format("Determining response for requested path \"%s\"", request.getUri().getPath()));
+        
         File documentRootDir = fileResolver.getFile(documentRootPath);
         if (documentRootDir.exists() && documentRootDir.isDirectory())
         {
@@ -70,10 +72,12 @@ public class DefaultFilesystemResponseStrategy implements FilesystemResponseStra
             if (null == defaultHtmlFile)
             {
                 // No default found, do an index
+                log.debug(String.format("Trying to perform index render on path \"%s\"", document.getAbsolutePath()));
                 processDirectoryIndex(document);
             }
             else
             {
+                log.debug(String.format("Found default HTML file \"%s\" for requested path \"%s\"", defaultHtmlFile.getName(), document.getAbsolutePath()));
                 processDocument(defaultHtmlFile, request);
             }
         }
@@ -92,7 +96,11 @@ public class DefaultFilesystemResponseStrategy implements FilesystemResponseStra
             {
                 try
                 {
+                    log.debug(String.format("Found file \"%s\"", document.getAbsolutePath()));
+                    
                     contentType = fileResolver.resolveContentType(document);
+                    log.debug(String.format("Resolved response content type: \"%s\"", contentType));
+                    
                     if (! contentTypeMatchesAccept(contentType, request))
                     {
                         responsePayload = contentType.getBytes();
@@ -117,6 +125,7 @@ public class DefaultFilesystemResponseStrategy implements FilesystemResponseStra
     
     private void processDirectoryIndex(final File directory)
     {
+        log.debug("Attempted unsupported directory index");
         responsePayload = "Directory index not supported".getBytes();
         responseCode = HttpResponseCode.FORBIDDEN;
     }
@@ -124,14 +133,19 @@ public class DefaultFilesystemResponseStrategy implements FilesystemResponseStra
     private boolean contentTypeMatchesAccept(final String contentType, final HttpRequest request)
     {
         final String acceptHeader = request.getHeaders().get("Accept");
-        if (null == acceptHeader || acceptHeader.equals("*/*"))
+        if (null == acceptHeader)
         {
             return true;
         }
         
         for (final String ct : acceptHeader.split(","))
         {
-            if (contentType.equalsIgnoreCase(ct.split(";", 2)[0].trim()))
+            final String thisCt = ct.split(";",2)[0].trim();
+            if ("*/*".equals(thisCt))
+            {
+                return true;
+            }
+            else if (contentType.equalsIgnoreCase(thisCt))
             {
                 return true;
             }
