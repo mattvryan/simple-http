@@ -122,13 +122,20 @@ public class RequestHandler implements Runnable
             }
             if (response.isPresent())
             {
-                HttpResponse rsp = response.get();
-                if (null != rsp.getResponsePayload())
+                if (request.getMethod().equals(HttpRequest.METHOD_HEAD))
                 {
-                    writer.println(String.format("Content-Length: %d", rsp.getResponsePayload().length));
-                    writer.println(String.format("Content-Type: %s", rsp.getContentType()));
                     writer.println("");
-                    socket.getOutputStream().write(rsp.getResponsePayload());
+                }
+                else
+                {
+                    HttpResponse rsp = response.get();
+                    if (null != rsp.getResponsePayload())
+                    {
+                        writer.println(String.format("Content-Length: %d", rsp.getResponsePayload().length));
+                        writer.println(String.format("Content-Type: %s", rsp.getContentType()));
+                        writer.println("");
+                        socket.getOutputStream().write(rsp.getResponsePayload());
+                    }
                 }
             }
         }

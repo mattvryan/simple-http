@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Map;
+import java.util.Set;
 
 import javax.inject.Inject;
 
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.mvryan.http.response.HttpResponseCode;
 
 import com.google.common.collect.Maps;
+import com.google.common.collect.Sets;
 
 @Slf4j
 public class HttpRequest
@@ -30,6 +32,11 @@ public class HttpRequest
     public static final String HTTP_VERSION_1_1 = "HTTP/1.1";
     public static final int MAX_URI_LENGTH=2048; // Semi-arbitrary limit with some de-facto basis.  Ask the internet for more info... :)
     private static final int MAX_WORD_LENGTH=MAX_URI_LENGTH*2;
+    
+    public static final String METHOD_GET = "GET";
+    public static final String METHOD_HEAD = "HEAD";
+    
+    private static final Set<String> supportedMethods = Sets.newHashSet(METHOD_GET, METHOD_HEAD);
     
     @Inject
     public HttpRequest() { }
@@ -135,7 +142,8 @@ public class HttpRequest
     
     private boolean isSupportedMethod(final String method)
     {
-        return method.equals("GET");
+        return supportedMethods.contains(method);
+        //return method.equals("GET");
     }
     
     private HttpResponseCode parseHeaders(final BufferedReader reader) throws IOException
