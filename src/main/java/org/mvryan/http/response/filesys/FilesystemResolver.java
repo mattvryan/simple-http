@@ -33,7 +33,7 @@ public class FilesystemResolver
                 break;
             }
         }
-        return defaultHtmlFile;
+        return defaultHtmlFile.exists() ? defaultHtmlFile : null;
     }
     
     public static String joinPath(final String lhs, final String rhs)
