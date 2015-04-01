@@ -7,4 +7,5 @@ public interface HttpResponse
     HttpResponse forRequest(final HttpRequest request);
     HttpResponseCode getResponseCode();
     byte[] getResponsePayload();
+    String getContentType();
 }

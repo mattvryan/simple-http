@@ -14,6 +14,8 @@ public class HttpResponseCode
             new HttpResponseCode(403, "Forbidden");
     public static final HttpResponseCode FILE_NOT_FOUND =
             new HttpResponseCode(404, "File Not Found");
+    public static final HttpResponseCode NOT_ACCEPTABLE =
+            new HttpResponseCode(406, "Not Acceptable");
     public static final HttpResponseCode REQUEST_URI_TOO_LONG =
             new HttpResponseCode(414, "Request-URI Too Long");
     

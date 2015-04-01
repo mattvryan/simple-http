@@ -11,6 +11,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mvryan.http.modules.ConfigurationModule;
 import org.mvryan.http.request.HttpRequest;
+import org.mvryan.http.response.filesys.FilesystemHttpResponse;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
@@ -36,6 +37,6 @@ public class HttpResponseFactoryTest
     {
         final HttpResponseFactory sut = injector.getInstance(HttpResponseFactory.class);
         final HttpResponse response = sut.getResponse(mockRequest);
-        assertTrue(response instanceof StaticContentHttpResponse);
+        assertTrue(response instanceof FilesystemHttpResponse);
     }
 }

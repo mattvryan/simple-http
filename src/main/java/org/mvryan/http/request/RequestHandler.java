@@ -88,6 +88,7 @@ public class RequestHandler implements Runnable
             if (null != rsp.getResponsePayload())
             {
                 writer.println(String.format("Content-Length: %d", rsp.getResponsePayload().length));
+                writer.println(String.format("Content-Type: %s", rsp.getContentType()));
 //                // headers - Content-Type
                 writer.println("");
                 socket.getOutputStream().write(rsp.getResponsePayload());
