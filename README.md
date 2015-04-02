@@ -13,4 +13,5 @@ Configuration options:
 * *org.mvryan.simple-http.document-root* - Location to look for files.  The default is a directory named "public_html" in the running user's home directory.
 * *org.mvryan.simple-http.allow-directory-index* - Set to "True" if you want to enable the generation of a directory index page for directories not containing a default file (e.g. index.htm[l], default.htm[l]).  The default is False.
 * *org.mvryan.simple-http.cache-enabled* - Set to "True" if you want to enable temporary caching of responses.  The default is False.
-* 
+
+
