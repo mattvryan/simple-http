@@ -18,6 +18,7 @@ import org.joda.time.format.ISODateTimeFormat;
 import org.mvryan.http.response.HttpResponse;
 import org.mvryan.http.response.HttpResponseCode;
 import org.mvryan.http.response.HttpResponseFactory;
+import org.mvryan.http.response.filesys.HttpResponseStrategy;
 
 import com.google.inject.Injector;
 
@@ -32,8 +33,8 @@ public class RequestHandler implements Runnable
     Timer keepaliveTimer = null;
     Timer maxKeepaliveTimer = null;
     
-    private static final int KEEPALIVE_TIMEOUT_SECONDS = 15;
-    private static final int MAX_KEEPALIVE_TIMEOUT_SECONDS = 100;
+    public static final int KEEPALIVE_TIMEOUT_SECONDS = 15;
+    public static final int MAX_KEEPALIVE_TIMEOUT_SECONDS = 100;
     
     @Override
     public void run()
@@ -45,8 +46,6 @@ public class RequestHandler implements Runnable
             {
                 HttpResponseCode responseCode = request.parse(socket.getInputStream());
                 
-                log.info(String.format("Request: %s %s", request.getMethod(), request.getUri().getPath()));            
-                
                 if (responseCode.isError() || responseCode.isRedirect())
                 {
                     respondAndClose(request, responseCode);
@@ -54,8 +53,11 @@ public class RequestHandler implements Runnable
                 }
                 else
                 {
+                    log.info(String.format("Request: %s %s", request.getMethod(), request.getUri().getPath()));            
+                    
                     final HttpResponseFactory factory = injector.getInstance(HttpResponseFactory.class);
-                    final HttpResponse response = factory.getResponse(request);
+                    final HttpResponseStrategy responseStrategy = factory.getResponseStrategy(request);
+                    final HttpResponse response = responseStrategy.determineResponse(request);
                     responseCode = response.getResponseCode();
                     
                     if (responseCode.isError())
@@ -146,7 +148,7 @@ public class RequestHandler implements Runnable
                     responseCode.getStatus(),
                     responseCode.getReason(),
                     request == null ? "?" : request.getMethod(),
-                    request == null ? "?" : request.getUri().getPath()));
+                    request == null ? "?" : (request.getUri() == null ? "?" : request.getUri().getPath())));
         }
         else
         {
@@ -154,7 +156,7 @@ public class RequestHandler implements Runnable
                     responseCode.getStatus(),
                     responseCode.getReason(),
                     request == null ? "?" : request.getMethod(),
-                    request == null ? "?" : request.getUri().getPath()));
+                    request == null ? "?" : (request.getUri() == null ? "?" : request.getUri().getPath())));
         }
     }
     

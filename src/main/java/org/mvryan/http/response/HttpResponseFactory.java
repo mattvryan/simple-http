@@ -3,7 +3,7 @@ package org.mvryan.http.response;
 import javax.inject.Inject;
 
 import org.mvryan.http.request.HttpRequest;
-import org.mvryan.http.response.filesys.FilesystemHttpResponse;
+import org.mvryan.http.response.filesys.HttpResponseStrategy;
 
 import com.google.inject.Injector;
 
@@ -25,8 +25,8 @@ public class HttpResponseFactory
         this.injector = injector;
     }
     
-    public HttpResponse getResponse(final HttpRequest request)
+    public HttpResponseStrategy getResponseStrategy(final HttpRequest request)
     {
-        return injector.getInstance(FilesystemHttpResponse.class).forRequest(request);
+        return injector.getInstance(HttpResponseStrategy.class);
     }
 }

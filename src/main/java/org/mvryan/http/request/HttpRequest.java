@@ -143,7 +143,6 @@ public class HttpRequest
     private boolean isSupportedMethod(final String method)
     {
         return supportedMethods.contains(method);
-        //return method.equals("GET");
     }
     
     private HttpResponseCode parseHeaders(final BufferedReader reader) throws IOException

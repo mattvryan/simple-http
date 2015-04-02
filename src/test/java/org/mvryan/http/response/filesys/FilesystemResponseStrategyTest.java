@@ -13,14 +13,20 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mvryan.http.modules.ConfigurationModule;
 import org.mvryan.http.request.HttpRequest;
+import org.mvryan.http.response.HttpResponse;
 import org.mvryan.http.response.HttpResponseCode;
 
 import com.google.common.collect.Maps;
+import com.google.inject.AbstractModule;
+import com.google.inject.Guice;
+import com.google.inject.Injector;
+import com.google.inject.name.Names;
 
-public class DefaultFilesystemResponseStrategyTest
+public class FilesystemResponseStrategyTest
 {
-    private FilesystemResponseStrategy sut = null;
+    private HttpResponseStrategy sut = null;
     
     private final FilesystemResolver resolver = mock(FilesystemResolver.class);
     private final HttpRequest mockRequest = mock(HttpRequest.class);
@@ -83,17 +89,27 @@ public class DefaultFilesystemResponseStrategyTest
         mockHeadersRestrictedAcceptList.put("Connection", "keep-alive");
         mockHeadersRestrictedAcceptList.put("Cache-Control", "no-cache");
         mockHeadersRestrictedAcceptList.put("User-Agent", "JUnit");
-        mockHeadersRestrictedAcceptList.put("Accept", "text/plain; UTF-8, text/xml");        
+        mockHeadersRestrictedAcceptList.put("Accept", "text/plain; UTF-8, text/xml");  
         
-        sut = new DefaultFilesystemResponseStrategy(resolver);
+        Injector injector = Guice.createInjector(new AbstractModule(){
+            @Override public void configure()
+            {
+                bind(String.class).annotatedWith(Names.named(ConfigurationModule.DOCUMENT_ROOT)).toInstance(docRoot);
+                bind(String.class).annotatedWith(Names.named(ConfigurationModule.ALLOW_DIRECTORY_INDEX)).toInstance(Boolean.FALSE.toString());
+                bind(FilesystemResolver.class).toInstance(resolver);
+                bind(HttpResponseStrategy.class).to(FilesystemResponseStrategy.class);
+            }
+        });
+        
+        sut = injector.getInstance(FilesystemResponseStrategy.class);
     }
     
     @Test
     public void testDetermineFileResponse() throws MalformedURLException
     {
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/test.html"));
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals(HttpResponseCode.OK, sut.getResponseCode());
+        HttpResponse response = sut.determineResponse( mockRequest);
+        assertEquals(HttpResponseCode.OK, response.getResponseCode());
     }
     
     @Test
@@ -101,8 +117,8 @@ public class DefaultFilesystemResponseStrategyTest
     {
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/"));
         when(resolver.getDefaultHtmlFile(any(File.class))).thenReturn(mockIndexFile);
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals(HttpResponseCode.OK, sut.getResponseCode());
+        HttpResponse response = sut.determineResponse( mockRequest);
+        assertEquals(HttpResponseCode.OK, response.getResponseCode());
     }
     
     @Test
@@ -110,8 +126,8 @@ public class DefaultFilesystemResponseStrategyTest
     {
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/"));
         when(resolver.getDefaultHtmlFile(any(File.class))).thenReturn(null);
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals(HttpResponseCode.FORBIDDEN, sut.getResponseCode());
+        HttpResponse response = sut.determineResponse( mockRequest);
+        assertEquals(HttpResponseCode.FORBIDDEN, response.getResponseCode());
     }
     
     @Test
@@ -119,8 +135,8 @@ public class DefaultFilesystemResponseStrategyTest
     {
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/test.html"));
         when(mockTestFile.canRead()).thenReturn(false);
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals(HttpResponseCode.FORBIDDEN, sut.getResponseCode());
+        HttpResponse response = sut.determineResponse( mockRequest);
+        assertEquals(HttpResponseCode.FORBIDDEN, response.getResponseCode());
     }
     
     @Test
@@ -128,8 +144,8 @@ public class DefaultFilesystemResponseStrategyTest
     {
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/test.html"));
         when(mockTestFile.exists()).thenReturn(false);
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals(HttpResponseCode.FILE_NOT_FOUND, sut.getResponseCode());
+        HttpResponse response = sut.determineResponse(mockRequest);
+        assertEquals(HttpResponseCode.FILE_NOT_FOUND, response.getResponseCode());
     }
     
     @Test
@@ -137,8 +153,8 @@ public class DefaultFilesystemResponseStrategyTest
     {
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/test.html"));
         when(resolver.resolveContentType(any(File.class))).thenReturn("text/html");
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals("text/html", sut.getContentType());
+        HttpResponse response = sut.determineResponse( mockRequest);
+        assertEquals("text/html", response.getContentType());
     }
     
     @Test
@@ -146,8 +162,8 @@ public class DefaultFilesystemResponseStrategyTest
     {
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/test.txt"));
         when(resolver.resolveContentType(any(File.class))).thenReturn("text/plain");
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals("text/plain", sut.getContentType());
+        HttpResponse response = sut.determineResponse( mockRequest);
+        assertEquals("text/plain", response.getContentType());
     }
     
     @Test
@@ -155,8 +171,8 @@ public class DefaultFilesystemResponseStrategyTest
     {
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/test.xml"));
         when(resolver.resolveContentType(any(File.class))).thenReturn("application/xml");
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals("application/xml", sut.getContentType());
+        HttpResponse response = sut.determineResponse( mockRequest);
+        assertEquals("application/xml", response.getContentType());
     }
     
     @Test
@@ -164,8 +180,8 @@ public class DefaultFilesystemResponseStrategyTest
     {
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/test.json"));
         when(resolver.resolveContentType(any(File.class))).thenReturn("application/json");
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals("application/json", sut.getContentType());
+        HttpResponse response = sut.determineResponse( mockRequest);
+        assertEquals("application/json", response.getContentType());
     }
     
     @Test
@@ -173,8 +189,8 @@ public class DefaultFilesystemResponseStrategyTest
     {
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/test.jpg"));
         when(resolver.resolveContentType(any(File.class))).thenReturn("application/octet-stream");
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals("application/octet-stream", sut.getContentType());
+        HttpResponse response = sut.determineResponse( mockRequest);
+        assertEquals("application/octet-stream", response.getContentType());
     }
     
     @Test
@@ -183,9 +199,9 @@ public class DefaultFilesystemResponseStrategyTest
         when(mockRequest.getHeaders()).thenReturn(mockHeadersRestrictedAccept);
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/test.html"));
         when(resolver.resolveContentType(any(File.class))).thenReturn("text/html");
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals(HttpResponseCode.NOT_ACCEPTABLE, sut.getResponseCode());
-        assertEquals("text/html", new String(sut.getResponsePayload()));
+        HttpResponse response = sut.determineResponse( mockRequest);
+        assertEquals(HttpResponseCode.NOT_ACCEPTABLE, response.getResponseCode());
+        assertEquals("text/html", new String(response.getResponsePayload()));
     }
     
     @Test
@@ -194,9 +210,9 @@ public class DefaultFilesystemResponseStrategyTest
         when(mockRequest.getHeaders()).thenReturn(mockHeadersRestrictedAcceptList);
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/test.html"));
         when(resolver.resolveContentType(any(File.class))).thenReturn("text/html");
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals(HttpResponseCode.NOT_ACCEPTABLE, sut.getResponseCode());
-        assertEquals("text/html", new String(sut.getResponsePayload()));
+        HttpResponse response = sut.determineResponse( mockRequest);
+        assertEquals(HttpResponseCode.NOT_ACCEPTABLE, response.getResponseCode());
+        assertEquals("text/html", new String(response.getResponsePayload()));
     }
     
     @Test
@@ -205,8 +221,8 @@ public class DefaultFilesystemResponseStrategyTest
         when(mockRequest.getHeaders()).thenReturn(mockHeadersRestrictedAccept);
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/test.txt"));
         when(resolver.resolveContentType(any(File.class))).thenReturn("text/plain");
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals(HttpResponseCode.OK, sut.getResponseCode());
+        HttpResponse response = sut.determineResponse( mockRequest);
+        assertEquals(HttpResponseCode.OK, response.getResponseCode());
     }
     
     @Test
@@ -215,8 +231,8 @@ public class DefaultFilesystemResponseStrategyTest
         when(mockRequest.getHeaders()).thenReturn(mockHeadersRestrictedAcceptList);
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/test.xml"));
         when(resolver.resolveContentType(any(File.class))).thenReturn("text/xml");
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals(HttpResponseCode.OK, sut.getResponseCode());
+        HttpResponse response = sut.determineResponse( mockRequest);
+        assertEquals(HttpResponseCode.OK, response.getResponseCode());
     }
     
     @Test
@@ -225,7 +241,7 @@ public class DefaultFilesystemResponseStrategyTest
         when(mockRequest.getHeaders()).thenReturn(mockHeaders);
         when(mockRequest.getUri()).thenReturn(new URL("http://localhost/get/test.html"));
         when(resolver.resolveContentType(any(File.class))).thenReturn("madeupcontenttype/fake");
-        sut.determineResponse(docRoot, mockRequest);
-        assertEquals(HttpResponseCode.OK, sut.getResponseCode());
+        HttpResponse response = sut.determineResponse( mockRequest);
+        assertEquals(HttpResponseCode.OK, response.getResponseCode());
     }
 }

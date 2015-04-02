@@ -11,9 +11,9 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mvryan.http.modules.ConfigurationModule;
 import org.mvryan.http.request.HttpRequest;
-import org.mvryan.http.response.filesys.DefaultFilesystemResponseStrategy;
-import org.mvryan.http.response.filesys.FilesystemHttpResponse;
 import org.mvryan.http.response.filesys.FilesystemResponseStrategy;
+import org.mvryan.http.response.filesys.FilesystemHttpResponse;
+import org.mvryan.http.response.filesys.HttpResponseStrategy;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
@@ -26,7 +26,7 @@ public class HttpResponseFactoryTest
         @Override protected void configure()
         {
             install(new ConfigurationModule());
-            bind(FilesystemResponseStrategy.class).to(DefaultFilesystemResponseStrategy.class);
+            bind(HttpResponseStrategy.class).to(FilesystemResponseStrategy.class);
         }
     });
     
@@ -42,7 +42,7 @@ public class HttpResponseFactoryTest
     public void testGetResponseReturnsStaticContentHttpResponse()
     {
         final HttpResponseFactory sut = injector.getInstance(HttpResponseFactory.class);
-        final HttpResponse response = sut.getResponse(mockRequest);
+        final HttpResponse response = sut.getResponseStrategy(mockRequest).determineResponse(mockRequest);
         assertTrue(response instanceof FilesystemHttpResponse);
     }
 }

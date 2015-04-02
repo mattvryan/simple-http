@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
 
+import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
 import com.google.common.base.Strings;
@@ -18,8 +19,12 @@ import com.google.inject.name.Names;
 @Slf4j
 public class ConfigurationModule extends AbstractModule
 {
-    public static final String DOCUMENT_ROOT = "org.mvryan.simple-http.documentroot";
-    public static final String ALLOW_DIRECTORY_INDEX = "org.mvryan.simple-http.allowdirectoryindex";
+    public static final String DOCUMENT_ROOT = "org.mvryan.simple-http.document-root";
+    public static final String ALLOW_DIRECTORY_INDEX = "org.mvryan.simple-http.allow-directory-index";
+    public static final String CACHE_ENABLED = "org.mvryan.simple-http.cache-enabled";
+    
+    @Getter
+    private Map<String, String> config = Maps.newHashMap();
     
     @Override
     protected void configure()
@@ -29,11 +34,10 @@ public class ConfigurationModule extends AbstractModule
             (homeDirectory.endsWith(File.separator) ? homeDirectory + "public_html" :
                 homeDirectory + File.separator + "public_html");
         
-        final Map<String, String> config = Maps.newHashMap();
-        
         // Load default configuration
         config.put(DOCUMENT_ROOT, docRoot);
         config.put(ALLOW_DIRECTORY_INDEX, Boolean.FALSE.toString());
+        config.put(CACHE_ENABLED, Boolean.FALSE.toString());
         
         // Load any configuration from resources
         try

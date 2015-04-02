@@ -54,14 +54,14 @@ public class FilesystemResolver
                 final String ext = document.getName().substring(lastPeriod);
                 if (".html".equalsIgnoreCase(ext) || ".htm".equalsIgnoreCase(ext))
                 {
-                    contentType = FilesystemResponseStrategy.CONTENT_TYPE_TEXT_HTML;
+                    contentType = HttpResponseStrategy.CONTENT_TYPE_TEXT_HTML;
                 }
                 else if (".txt".equalsIgnoreCase(ext))
                 {
-                    contentType = FilesystemResponseStrategy.CONTENT_TYPE_TEXT_PLAIN;
+                    contentType = HttpResponseStrategy.CONTENT_TYPE_TEXT_PLAIN;
                 }
             }
         }
-        return null == contentType ? FilesystemResponseStrategy.CONTENT_TYPE_DEFAULT : contentType;
+        return null == contentType ? HttpResponseStrategy.CONTENT_TYPE_DEFAULT : contentType;
     }    
 }
