@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -41,6 +42,8 @@ public class FilesystemResponseStrategy implements HttpResponseStrategy
         if (Boolean.parseBoolean(cacheEnabled))
         {
             cache = Optional.of(CacheBuilder.newBuilder()
+                    .maximumSize(1000)
+                    .expireAfterAccess(5, TimeUnit.MINUTES)
                     .build(
                             new CacheLoader<HttpRequest, HttpResponse>()
                             {
