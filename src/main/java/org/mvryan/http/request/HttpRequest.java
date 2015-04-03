@@ -101,6 +101,12 @@ public class HttpRequest
         return null != connection && connection.equals("keep-alive");
     }
     
+    public boolean isCacheable()
+    {
+        final String cacheControl = headers.get("Cache-Control");
+        return null != cacheControl && ! cacheControl.equals("no-cache");
+    }
+    
     private String readWord(final BufferedReader reader) throws IOException
     {
         char nextChar = (char) reader.read();

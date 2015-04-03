@@ -41,6 +41,10 @@ public class FilesystemResponseStrategy implements HttpResponseStrategy
         
         if (Boolean.parseBoolean(cacheEnabled))
         {
+            // This is a simple caching solution.  It does not provide
+            // a caching solution that is compliant with the HTTP spec
+            // because it cannot support max-age, but it can
+            // support no-cache.
             cache = Optional.of(CacheBuilder.newBuilder()
                     .maximumSize(1000)
                     .expireAfterAccess(5, TimeUnit.MINUTES)
@@ -64,7 +68,7 @@ public class FilesystemResponseStrategy implements HttpResponseStrategy
     {
         log.debug(String.format("Determining response for requested path \"%s\"", request.getUri().getPath()));
         
-        if (cache.isPresent())
+        if (cache.isPresent() && request.isCacheable())
         {
             try
             {
